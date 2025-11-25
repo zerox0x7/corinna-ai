@@ -36,8 +36,24 @@ Here is an example of the environment variables needed for the project. Replace 
 
 ```bash
 # NodeMailer Configuration
-NODE_MAILER_EMAIL=your_email@gmail.com
-NODE_MAILER_GMAIL_APP_PASSWORD=your_gmail_app_password
+# You can use Gmail, Ethereal Email (for testing), or any other SMTP service
+
+# For Gmail:
+# NODE_MAILER_HOST=smtp.gmail.com
+# NODE_MAILER_PORT=465
+# NODE_MAILER_SECURE=true
+# NODE_MAILER_EMAIL=your_email@gmail.com
+# NODE_MAILER_PASSWORD=your_gmail_app_password
+
+# For Ethereal Email (Testing - No domain verification needed):
+NODE_MAILER_HOST=smtp.ethereal.email
+NODE_MAILER_PORT=587
+NODE_MAILER_SECURE=false
+NODE_MAILER_EMAIL=your_ethereal_email@ethereal.email
+NODE_MAILER_PASSWORD=your_ethereal_password
+
+# Legacy variable (optional, kept for backward compatibility)
+# NODE_MAILER_GMAIL_APP_PASSWORD=your_gmail_app_password
 
 # Pusher Configuration
 NEXT_PUBLIC_PUSHER_APP_CLUSTOR=your_app_cluster
