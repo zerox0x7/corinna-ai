@@ -68,3 +68,50 @@ export function postToParent(data: string): void {
     window.parent.postMessage(data, "*")
   }
 }
+
+/**
+ * Normalizes Uploadcare image URLs for display
+ * Handles both full URLs and UUID-only values
+ * Supports both ucarecdn.com and *.ucarecd.net CDN domains
+ * 
+ * Uploadcare CDN formats:
+ * - https://{subdomain}.ucarecd.net/{uuid}/{filename}
+ * - https://ucarecdn.com/{uuid}/
+ * 
+ * If only UUID is provided, we use the configured CDN subdomain.
+ * For best results, store the full cdnUrl from Uploadcare upload response.
+ */
+export function getUploadcareImageUrl(value: string | null | undefined): string {
+  if (!value) return ''
+  
+  // If it's already a full URL, return as-is
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value
+  }
+  
+  // Get CDN subdomain from environment variable or use default
+  const cdnSubdomain = process.env.NEXT_PUBLIC_UPLOADCARE_CDN_SUBDOMAIN || '62atahsk05'
+  const cdnBaseUrl = `https://${cdnSubdomain}.ucarecd.net`
+  
+  // Check if it's a UUID pattern (with or without filename)
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  
+  // If it contains a slash, it might be uuid/filename format
+  if (value.includes('/')) {
+    const parts = value.split('/')
+    const uuid = parts[0]
+    // If first part is a UUID, construct URL with filename
+    if (uuidPattern.test(uuid)) {
+      // Use subdomain CDN format with filename
+      return `${cdnBaseUrl}/${value}`
+    }
+  }
+  
+  // If it's a pure UUID, use subdomain CDN format
+  if (uuidPattern.test(value)) {
+    return `${cdnBaseUrl}/${value}/`
+  }
+  
+  // Fallback: assume it might be a partial URL or UUID and try subdomain format
+  return `${cdnBaseUrl}/${value}/`
+}

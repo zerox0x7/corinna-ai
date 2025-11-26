@@ -105,7 +105,9 @@ export const useSettings = (id: string) => {
     }
     if (values.image[0]) {
       const uploaded = await upload.uploadFile(values.image[0])
-      const image = await onChatBotImageUpdate(id, uploaded.uuid)
+      // Use cdnUrl if available for better compatibility, otherwise use uuid
+      const imageIdentifier = (uploaded as any).cdnUrl || uploaded.uuid
+      const image = await onChatBotImageUpdate(id, imageIdentifier)
       if (image) {
         toast({
           title: image.status == 200 ? 'Success' : 'Error',
@@ -272,10 +274,12 @@ export const useProducts = (domainId: string) => {
     try {
       setLoading(true)
       const uploaded = await upload.uploadFile(values.image[0])
+      // Use cdnUrl if available for better compatibility, otherwise use uuid
+      const imageIdentifier = (uploaded as any).cdnUrl || uploaded.uuid
       const product = await onCreateNewDomainProduct(
         domainId,
         values.name,
-        uploaded.uuid,
+        imageIdentifier,
         values.price
       )
       if (product) {

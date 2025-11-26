@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn, extractUUIDFromString, getMonthName } from '@/lib/utils'
+import { cn, extractUUIDFromString, getMonthName, getUploadcareImageUrl } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { User } from 'lucide-react'
 import Image from 'next/image'
@@ -69,7 +69,7 @@ const Bubble = ({ message, createdAt }: Props) => {
         {image ? (
           <div className="relative aspect-square">
             <Image
-              src={`https://ucarecdn.com/${image[0]}/`}
+              src={getUploadcareImageUrl(image[0])}
               fill
               alt="image"
             />

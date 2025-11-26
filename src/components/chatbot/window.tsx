@@ -1,4 +1,5 @@
 import { ChatBotMessageProps } from '@/schemas/conversation.schema'
+import { getUploadcareImageUrl } from '@/lib/utils'
 import React, { forwardRef } from 'react'
 import { UseFormRegister } from 'react-hook-form'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -97,7 +98,7 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
           </div>
           <div className="relative w-16 h-16">
             <Image
-              src="https://ucarecdn.com/019dd17d-b69b-4dea-a16b-60e0f25de1e9/propuser.png"
+              src={getUploadcareImageUrl('019dd17d-b69b-4dea-a16b-60e0f25de1e9/propuser.png')}
               fill
               alt="users"
               objectFit="contain"

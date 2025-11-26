@@ -6,6 +6,7 @@ import { Loader } from '@/components/loader'
 import { Card } from '@/components/ui/card'
 import { Elements } from '@stripe/react-stripe-js'
 import Image from 'next/image'
+import { getUploadcareImageUrl } from '@/lib/utils'
 import { CustomerPaymentForm } from './payment-form'
 
 type Props = {
@@ -54,7 +55,7 @@ const PaymentCheckout = ({
                 >
                   <div className="w-2/12 aspect-square relative">
                     <Image
-                      src={`https://ucarecdn.com/${product.image}/`}
+                      src={getUploadcareImageUrl(product.image)}
                       alt="product"
                       fill
                     />

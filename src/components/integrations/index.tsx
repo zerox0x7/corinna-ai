@@ -1,5 +1,6 @@
 'use client'
 import { INTEGRATION_LIST_ITEMS } from '@/constants/integrations'
+import { getUploadcareImageUrl } from '@/lib/utils'
 import React from 'react'
 import { Card, CardContent, CardDescription } from '../ui/card'
 import Image from 'next/image'
@@ -22,7 +23,7 @@ const IntegrationsList = ({ connections }: Props) => {
                 <div className="w-10 h-10 relative">
                   <Image
                     sizes="100vw"
-                    src={`https://ucarecdn.com/${item.logo}/`}
+                    src={getUploadcareImageUrl(item.logo)}
                     alt="Logo"
                     fill
                   />

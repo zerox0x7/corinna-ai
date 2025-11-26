@@ -67,6 +67,7 @@ OPEN_AI_KEY=your_openai_key
 # UploadCare Configuration
 NEXT_PUBLIC_UPLOAD_CARE_PUBLIC_KEY=your_uploadcare_public_key
 UPLOAD_CARE_SECRET_KEY=your_uploadcare_secret_key
+NEXT_PUBLIC_UPLOADCARE_CDN_SUBDOMAIN=62atahsk05
 
 # Clerk Configuration
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key

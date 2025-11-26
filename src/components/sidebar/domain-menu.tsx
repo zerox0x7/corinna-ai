@@ -1,7 +1,7 @@
 'use client'
 
 import { useDomain } from '@/hooks/sidebar/use-domain'
-import { cn } from '@/lib/utils'
+import { cn, getUploadcareImageUrl } from '@/lib/utils'
 import React from 'react'
 import AppDrawer from '../drawer'
 import { Plus } from 'lucide-react'
@@ -82,7 +82,7 @@ const DomainMenu = ({ domains, min }: Props) => {
               )}
             >
               <Image
-                src={`https://ucarecdn.com/${domain.icon}/`}
+                src={getUploadcareImageUrl(domain.icon)}
                 alt="logo"
                 width={20}
                 height={20}

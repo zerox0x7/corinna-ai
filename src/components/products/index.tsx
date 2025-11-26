@@ -7,7 +7,7 @@ import { TabsContent } from '../ui/tabs'
 import { DataTable } from '../table'
 import { TableCell, TableRow } from '../ui/table'
 import Image from 'next/image'
-import { getMonthName } from '@/lib/utils'
+import { getMonthName, getUploadcareImageUrl } from '@/lib/utils'
 
 type Props = {
   products: {
@@ -68,7 +68,7 @@ const ProductTable = ({ id, products }: Props) => {
               <TableRow key={product.id}>
                 <TableCell>
                   <Image
-                    src={`https://ucarecdn.com/${product.image}/`}
+                    src={getUploadcareImageUrl(product.image)}
                     width={50}
                     height={50}
                     alt="image"

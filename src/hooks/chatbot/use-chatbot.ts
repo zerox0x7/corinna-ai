@@ -112,23 +112,26 @@ export const useChatBot = () => {
     if (values.image.length) {
       console.log('IMAGE fROM ', values.image[0])
       const uploaded = await upload.uploadFile(values.image[0])
+      // Use cdnUrl if available, otherwise fall back to uuid
+      // The cdnUrl contains the full CDN URL with correct subdomain and filename
+      const imageIdentifier = (uploaded as any).cdnUrl || uploaded.uuid
       if (!onRealTime?.mode) {
         setOnChats((prev: any) => [
           ...prev,
           {
             role: 'user',
-            content: uploaded.uuid,
+            content: imageIdentifier,
           },
         ])
       }
 
-      console.log('🟡 RESPONSE FROM UC', uploaded.uuid)
+      console.log('🟡 RESPONSE FROM UC', uploaded.uuid, 'CDN URL:', (uploaded as any).cdnUrl)
       setOnAiTyping(true)
       const response = await onAiChatBotAssistant(
         currentBotId!,
         onChats,
         'user',
-        uploaded.uuid
+        imageIdentifier
       )
 
       if (response) {

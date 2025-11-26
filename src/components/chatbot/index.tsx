@@ -2,7 +2,7 @@
 import { useChatBot } from '@/hooks/chatbot/use-chatbot'
 import React from 'react'
 import { BotWindow } from './window'
-import { cn } from '@/lib/utils'
+import { cn, getUploadcareImageUrl } from '@/lib/utils'
 import Image from 'next/image'
 import { BotIcon } from '@/icons/bot-icon'
 
@@ -52,7 +52,7 @@ const AiChatBot = (props: Props) => {
       >
         {currentBot?.chatBot?.icon ? (
           <Image
-            src={`https://ucarecdn.com/${currentBot.chatBot.icon}/`}
+            src={getUploadcareImageUrl(currentBot.chatBot.icon)}
             alt="bot"
             fill
           />
