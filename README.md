@@ -61,8 +61,9 @@ NEXT_PUBLIC_PUSHER_APP_SECRET=your_app_secret
 NEXT_PUBLIC_PUSHER_APP_KEY=your_app_key
 NEXT_PUBLIC_PUSHER_APP_ID=your_app_id
 
-# OpenAI Configuration
-OPEN_AI_KEY=your_openai_key
+# OpenRouter Configuration (AI Platform)
+OPENROUTER_API_KEY=your_openrouter_api_key
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com  # Optional: For OpenRouter rankings
 
 # UploadCare Configuration
 NEXT_PUBLIC_UPLOAD_CARE_PUBLIC_KEY=your_uploadcare_public_key

@@ -8,7 +8,12 @@ import { onMailer } from '../mailer'
 import OpenAi from 'openai'
 
 const openai = new OpenAi({
-  apiKey: process.env.OPEN_AI_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+  defaultHeaders: {
+    'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+    'X-Title': 'Corinna AI',
+  },
 })
 
 export const onStoreConversations = async (
@@ -243,7 +248,7 @@ export const onAiChatBotAssistant = async (
               content: message,
             },
           ],
-          model: 'gpt-3.5-turbo',
+          model: 'openai/gpt-3.5-turbo',
         })
 
         if (chatCompletion.choices[0].message.content?.includes('(realtime)')) {
@@ -355,7 +360,7 @@ export const onAiChatBotAssistant = async (
             content: message,
           },
         ],
-        model: 'gpt-3.5-turbo',
+        model: 'openai/gpt-3.5-turbo',
       })
 
       if (chatCompletion) {
