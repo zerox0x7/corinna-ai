@@ -72,26 +72,31 @@ export function postToParent(data: string): void {
 /**
  * Normalizes Uploadcare image URLs for display
  * Handles both full URLs and UUID-only values
- * Supports both ucarecdn.com and *.ucarecd.net CDN domains
+ * Uses 62atahsk05.ucarecd.net CDN domain
  * 
- * Uploadcare CDN formats:
- * - https://{subdomain}.ucarecd.net/{uuid}/{filename}
- * - https://ucarecdn.com/{uuid}/
+ * Uploadcare CDN format:
+ * - https://62atahsk05.ucarecd.net/{uuid}/{filename}
+ * - https://62atahsk05.ucarecd.net/{uuid}/
  * 
  * If only UUID is provided, we use the configured CDN subdomain.
+ * Automatically converts ucarecdn.com URLs to 62atahsk05.ucarecd.net format.
  * For best results, store the full cdnUrl from Uploadcare upload response.
  */
 export function getUploadcareImageUrl(value: string | null | undefined): string {
   if (!value) return ''
   
-  // If it's already a full URL, return as-is
-  if (value.startsWith('http://') || value.startsWith('https://')) {
-    return value
-  }
-  
   // Get CDN subdomain from environment variable or use default
   const cdnSubdomain = process.env.NEXT_PUBLIC_UPLOADCARE_CDN_SUBDOMAIN || '62atahsk05'
   const cdnBaseUrl = `https://${cdnSubdomain}.ucarecd.net`
+  
+  // If it's already a full URL, convert ucarecdn.com to new format or return as-is
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    // Convert ucarecdn.com URLs to 62atahsk05.ucarecd.net
+    if (value.includes('ucarecdn.com')) {
+      return value.replace(/https?:\/\/ucarecdn\.com\//, `${cdnBaseUrl}/`)
+    }
+    return value
+  }
   
   // Check if it's a UUID pattern (with or without filename)
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
