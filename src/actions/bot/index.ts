@@ -97,6 +97,7 @@ export const onAiChatBotAssistant = async (
         customerEmail = extractedEmail[0]
       }
 
+      // Check for live mode if we have a customer email (from current or previous message)
       if (customerEmail) {
         const checkCustomer = await client.domain.findUnique({
           where: {
@@ -160,55 +161,81 @@ export const onAiChatBotAssistant = async (
             return { response }
           }
         }
-        if (checkCustomer && checkCustomer.customer[0].chatRoom[0].live) {
-          await onStoreConversations(
-            checkCustomer?.customer[0].chatRoom[0].id!,
-            message,
-            author
-          )
+        if (checkCustomer && checkCustomer.customer.length > 0 && checkCustomer.customer[0].chatRoom.length > 0) {
+          const chatRoomLive = checkCustomer.customer[0].chatRoom[0].live
+          const chatRoomId = checkCustomer.customer[0].chatRoom[0].id
           
-          onRealTimeChat(
-            checkCustomer.customer[0].chatRoom[0].id,
-            message,
-            'user',
-            author
-          )
-
-          if (!checkCustomer.customer[0].chatRoom[0].mailed) {
-            const user = await clerkClient.users.getUser(
-              checkCustomer.User?.clerkId!
+          if (chatRoomLive) {
+            await onStoreConversations(
+              chatRoomId,
+              message,
+              author
+            )
+            
+            onRealTimeChat(
+              chatRoomId,
+              message,
+              'user',
+              author
             )
 
-            onMailer(user.emailAddresses[0].emailAddress)
+            if (!checkCustomer.customer[0].chatRoom[0].mailed) {
+              const user = await clerkClient.users.getUser(
+                checkCustomer.User?.clerkId!
+              )
 
-            //update mail status to prevent spamming
-            const mailed = await client.chatRoom.update({
-              where: {
-                id: checkCustomer.customer[0].chatRoom[0].id,
-              },
-              data: {
-                mailed: true,
-              },
-            })
+              onMailer(user.emailAddresses[0].emailAddress)
 
-            if (mailed) {
-              return {
-                live: true,
-                chatRoom: checkCustomer.customer[0].chatRoom[0].id,
+              //update mail status to prevent spamming
+              const mailed = await client.chatRoom.update({
+                where: {
+                  id: chatRoomId,
+                },
+                data: {
+                  mailed: true,
+                },
+              })
+
+              if (mailed) {
+                return {
+                  live: true,
+                  chatRoom: chatRoomId,
+                }
               }
             }
-          }
-          return {
-            live: true,
-            chatRoom: checkCustomer.customer[0].chatRoom[0].id,
+            return {
+              live: true,
+              chatRoom: chatRoomId,
+            }
           }
         }
 
-        await onStoreConversations(
-          checkCustomer?.customer[0].chatRoom[0].id!,
-          message,
-          author
-        )
+        if (checkCustomer && checkCustomer.customer.length > 0 && checkCustomer.customer[0].chatRoom.length > 0) {
+          const chatRoomId = checkCustomer.customer[0].chatRoom[0].id
+          
+          await onStoreConversations(
+            chatRoomId,
+            message,
+            author
+          )
+
+          // Double-check if chatRoom is now in live mode (in case merchant activated it)
+          const updatedChatRoom = await client.chatRoom.findUnique({
+            where: {
+              id: chatRoomId,
+            },
+            select: {
+              live: true,
+            },
+          })
+
+          if (updatedChatRoom?.live) {
+            return {
+              live: true,
+              chatRoom: chatRoomId,
+            }
+          }
+        }
 
         const chatCompletion = await openai.chat.completions.create({
           messages: [

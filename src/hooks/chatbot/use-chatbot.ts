@@ -56,6 +56,7 @@ export const useChatBot = () => {
     { chatroom: string; mode: boolean } | undefined
   >(undefined)
 
+
   const onScrollToBottom = () => {
     messageWindowRef.current?.scroll({
       top: messageWindowRef.current.scrollHeight,
@@ -172,11 +173,10 @@ export const useChatBot = () => {
       if (response) {
         setOnAiTyping(false)
         if (response.live) {
-          setOnRealTime((prev) => ({
-            ...prev,
+          setOnRealTime({
             chatroom: response.chatRoom,
             mode: response.live,
-          }))
+          })
         } else {
           setOnChats((prev: any) => [...prev, response.response])
         }
@@ -212,26 +212,112 @@ export const useRealTime = (
     >
   >
 ) => {
-  const counterRef = useRef(1)
-
   useEffect(() => {
-    pusherClient.subscribe(chatRoom)
-    pusherClient.bind('realtime-mode', (data: any) => {
-      console.log('✅', data)
-      if (counterRef.current !== 1) {
-        setChats((prev: any) => [
-          ...prev,
-          {
+    if (!chatRoom) {
+      console.log('⚠️ [CHATBOT] No chatRoom provided to useRealTime')
+      return
+    }
+
+    // Check if Pusher client is initialized
+    if (!pusherClient) {
+      console.error('❌ [CHATBOT] Pusher client is not initialized!')
+      return
+    }
+
+    console.log('🔵 [CHATBOT] Setting up real-time subscription for chatRoom:', chatRoom)
+    console.log('🔵 [CHATBOT] Pusher client connection state:', pusherClient.connection?.state)
+    
+    // Wait for Pusher to be connected before subscribing
+    let channel: any = null
+    let handleRealtimeMessage: ((data: any) => void) | null = null
+    let stateChangeHandler: (() => void) | null = null
+
+    const subscribeToChannel = () => {
+      console.log('🔵 [CHATBOT] Subscribing to Pusher channel:', chatRoom)
+      
+      // Check if already subscribed
+      const existingChannel = pusherClient.channel(chatRoom)
+      if (existingChannel) {
+        console.log('⚠️ [CHATBOT] Already subscribed to channel, unsubscribing first...')
+        pusherClient.unsubscribe(chatRoom)
+      }
+      
+      // Subscribe to the chat room channel
+      channel = pusherClient.subscribe(chatRoom)
+      
+      // Wait for subscription to be successful
+      channel.bind('pusher:subscription_succeeded', () => {
+        console.log('✅ [CHATBOT] Successfully subscribed to channel:', chatRoom)
+        console.log('✅ [CHATBOT] Channel subscription state:', channel.subscribed)
+      })
+
+      // Handle subscription errors
+      channel.bind('pusher:subscription_error', (error: any) => {
+        console.error('❌ [CHATBOT] Subscription error:', error)
+      })
+      
+      // Bind to realtime-mode events on the CHANNEL (not the client!)
+      handleRealtimeMessage = (data: any) => {
+        console.log('✅ [CHATBOT] Received realtime message from merchant:', data)
+        console.log('✅ [CHATBOT] Message data structure:', JSON.stringify(data, null, 2))
+        if (data?.chat) {
+          console.log('✅ [CHATBOT] Adding message to chat:', {
             role: data.chat.role,
             content: data.chat.message,
-          },
-        ])
+          })
+          setChats((prev: any) => {
+            const newChats = [
+              ...prev,
+              {
+                role: data.chat.role,
+                content: data.chat.message,
+              },
+            ]
+            console.log('✅ [CHATBOT] Updated chats array length:', newChats.length)
+            return newChats
+          })
+        } else {
+          console.warn('⚠️ [CHATBOT] Received message without chat data:', data)
+        }
       }
-      counterRef.current += 1
-    })
+
+      // CRITICAL: Bind to the channel, not the pusherClient!
+      channel.bind('realtime-mode', handleRealtimeMessage)
+      console.log('🔵 [CHATBOT] Bound to realtime-mode event on channel:', chatRoom)
+
+      // Also log all events on the channel for debugging
+      channel.bind_global((eventName: string, data: any) => {
+        if (eventName !== 'pusher:subscription_succeeded' && eventName !== 'pusher:subscription_error') {
+          console.log('🔍 [CHATBOT] Global event received:', eventName, data)
+        }
+      })
+    }
+
+    // Wait for Pusher to be connected before subscribing
+    if (pusherClient.connection.state === 'connected') {
+      subscribeToChannel()
+    } else {
+      console.log('⏳ [CHATBOT] Waiting for Pusher connection, current state:', pusherClient.connection.state)
+      stateChangeHandler = () => {
+        if (pusherClient.connection.state === 'connected') {
+          console.log('✅ [CHATBOT] Pusher connected, now subscribing...')
+          subscribeToChannel()
+        }
+      }
+      pusherClient.connection.bind('state_change', stateChangeHandler)
+    }
+
+    // Cleanup function
     return () => {
-      pusherClient.unbind('realtime-mode')
+      console.log('🔴 [CHATBOT] Cleaning up subscription for channel:', chatRoom)
+      if (stateChangeHandler) {
+        pusherClient.connection.unbind('state_change', stateChangeHandler)
+      }
+      if (channel && handleRealtimeMessage) {
+        channel.unbind('realtime-mode', handleRealtimeMessage)
+        channel.unbind_global()
+      }
       pusherClient.unsubscribe(chatRoom)
     }
-  }, [])
+  }, [chatRoom, setChats])
 }

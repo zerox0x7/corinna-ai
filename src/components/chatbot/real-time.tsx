@@ -16,7 +16,8 @@ type Props = {
 }
 
 const RealTimeMode = ({ chatRoomId, setChats }: Props) => {
- useRealTime(chatRoomId, setChats)
+  console.log('🟢 [RealTimeMode] Component rendered with chatRoomId:', chatRoomId)
+  useRealTime(chatRoomId, setChats)
 
   return (
     <Card className="px-3 rounded-full py-1 bg-orange font-bold text-white text-sm">
