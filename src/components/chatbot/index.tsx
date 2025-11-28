@@ -25,41 +25,45 @@ const AiChatBot = (props: Props) => {
   } = useChatBot()
 
   return (
-    <div className="h-screen flex flex-col justify-end items-end gap-4">
+    <div className="fixed bottom-0 right-0 z-50 flex flex-col items-end gap-3 p-4 md:p-6">
       {botOpened && (
-        <BotWindow
-          errors={errors}
-          setChat={setOnChats}
-          realtimeMode={onRealTime}
-          helpdesk={currentBot?.helpdesk!}
-          domainName={currentBot?.name!}
-          ref={messageWindowRef}
-          help={currentBot?.chatBot?.helpdesk}
-          theme={currentBot?.chatBot?.background}
-          textColor={currentBot?.chatBot?.textColor}
-          chats={onChats}
-          register={register}
-          onChat={onStartChatting}
-          onResponding={onAiTyping}
-        />
+        <div className="animate-in slide-in-from-bottom-5 duration-300">
+          <BotWindow
+            errors={errors}
+            setChat={setOnChats}
+            realtimeMode={onRealTime}
+            helpdesk={currentBot?.helpdesk!}
+            domainName={currentBot?.name!}
+            ref={messageWindowRef}
+            help={currentBot?.chatBot?.helpdesk}
+            theme={currentBot?.chatBot?.background}
+            textColor={currentBot?.chatBot?.textColor}
+            chats={onChats}
+            register={register}
+            onChat={onStartChatting}
+            onResponding={onAiTyping}
+          />
+        </div>
       )}
-      <div
+      <button
         className={cn(
-          'rounded-full relative cursor-pointer shadow-md w-20 h-20 flex items-center justify-center bg-grandis',
+          'rounded-full relative cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-16 h-16 md:w-20 md:h-20 flex items-center justify-center bg-grandis overflow-hidden',
           loading ? 'invisible' : 'visible'
         )}
         onClick={onOpenChatBot}
+        aria-label="Open chat"
       >
         {currentBot?.chatBot?.icon ? (
           <Image
             src={getUploadcareImageUrl(currentBot.chatBot.icon)}
             alt="bot"
             fill
+            className="rounded-full object-cover"
           />
         ) : (
           <BotIcon />
         )}
-      </div>
+      </button>
     </div>
   )
 }

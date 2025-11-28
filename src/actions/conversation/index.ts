@@ -19,6 +19,15 @@ export const onToggleRealtime = async (id: string, state: boolean) => {
     })
 
     if (chatRoom) {
+      // Notify the chatbot client about the mode change
+      if (!state) {
+        // When disabling realtime mode, send event to chatbot
+        await pusherServer.trigger(id, 'realtime-mode-toggle', {
+          live: false,
+          message: 'AI is now handling your conversation',
+        })
+      }
+
       return {
         status: 200,
         message: chatRoom.live
@@ -91,7 +100,7 @@ export const onGetDomainChatRooms = async (id: string) => {
 
 export const onGetChatMessages = async (id: string) => {
   try {
-    const messages = await client.chatRoom.findMany({
+    const chatRoom = await client.chatRoom.findUnique({
       where: {
         id,
       },
@@ -113,8 +122,8 @@ export const onGetChatMessages = async (id: string) => {
       },
     })
 
-    if (messages) {
-      return messages
+    if (chatRoom) {
+      return chatRoom
     }
   } catch (error) {
     console.log(error)

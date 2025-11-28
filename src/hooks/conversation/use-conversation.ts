@@ -55,11 +55,11 @@ export const useConversation = () => {
   const onGetActiveChatMessages = async (id: string) => {
     try {
       loadMessages(true)
-      const messages = await onGetChatMessages(id)
-      if (messages) {
+      const chatRoom = await onGetChatMessages(id)
+      if (chatRoom) {
         setChatRoom(id)
         loadMessages(false)
-        setChats(messages[0].message)
+        setChats(chatRoom.message)
       }
     } catch (error) {
       console.log(error)

@@ -21,7 +21,7 @@ export const onStoreConversations = async (
   message: string,
   role: 'assistant' | 'user'
 ) => {
-  await client.chatRoom.update({
+  const chatRoom = await client.chatRoom.update({
     where: {
       id,
     },
@@ -33,7 +33,16 @@ export const onStoreConversations = async (
         },
       },
     },
+    include: {
+      message: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 1,
+      },
+    },
   })
+  return chatRoom.message[0]
 }
 
 export const onGetCurrentChatBot = async (id: string) => {
@@ -166,7 +175,7 @@ export const onAiChatBotAssistant = async (
           const chatRoomId = checkCustomer.customer[0].chatRoom[0].id
           
           if (chatRoomLive) {
-            await onStoreConversations(
+            const storedMessage = await onStoreConversations(
               chatRoomId,
               message,
               author
@@ -175,7 +184,7 @@ export const onAiChatBotAssistant = async (
             onRealTimeChat(
               chatRoomId,
               message,
-              'user',
+              storedMessage.id,
               author
             )
 

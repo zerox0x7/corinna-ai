@@ -116,6 +116,8 @@ export const useChatBot = () => {
       // Use cdnUrl if available, otherwise fall back to uuid
       // The cdnUrl contains the full CDN URL with correct subdomain and filename
       const imageIdentifier = (uploaded as any).cdnUrl || uploaded.uuid
+      const wasInRealtimeMode = onRealTime?.mode
+      
       if (!onRealTime?.mode) {
         setOnChats((prev: any) => [
           ...prev,
@@ -144,6 +146,19 @@ export const useChatBot = () => {
             mode: response.live,
           }))
         } else {
+          // If we were in realtime mode but now we're not, reset it
+          if (wasInRealtimeMode) {
+            console.log('🔄 [CHATBOT] Realtime mode deactivated, switching to AI')
+            setOnRealTime(undefined)
+            // Add the user message that wasn't shown locally
+            setOnChats((prev: any) => [
+              ...prev,
+              {
+                role: 'user',
+                content: imageIdentifier,
+              },
+            ])
+          }
           setOnChats((prev: any) => [...prev, response.response])
         }
       }
@@ -151,6 +166,8 @@ export const useChatBot = () => {
     reset()
 
     if (values.content) {
+      const wasInRealtimeMode = onRealTime?.mode
+      
       if (!onRealTime?.mode) {
         setOnChats((prev: any) => [
           ...prev,
@@ -178,6 +195,19 @@ export const useChatBot = () => {
             mode: response.live,
           })
         } else {
+          // If we were in realtime mode but now we're not, reset it
+          if (wasInRealtimeMode) {
+            console.log('🔄 [CHATBOT] Realtime mode deactivated, switching to AI')
+            setOnRealTime(undefined)
+            // Add the user message that wasn't shown locally
+            setOnChats((prev: any) => [
+              ...prev,
+              {
+                role: 'user',
+                content: values.content,
+              },
+            ])
+          }
           setOnChats((prev: any) => [...prev, response.response])
         }
       }
@@ -284,6 +314,29 @@ export const useRealTime = (
       // CRITICAL: Bind to the channel, not the pusherClient!
       channel.bind('realtime-mode', handleRealtimeMessage)
       console.log('🔵 [CHATBOT] Bound to realtime-mode event on channel:', chatRoom)
+
+      // Listen for realtime mode toggle from merchant
+      channel.bind('realtime-mode-toggle', (data: any) => {
+        console.log('🔄 [CHATBOT] Realtime mode toggled by merchant:', data)
+        if (!data.live) {
+          // Merchant disabled realtime mode, switch back to AI
+          console.log('🤖 [CHATBOT] Switching back to AI mode')
+          
+          // Add AI message to chat
+          if (data.message) {
+            setChats((prev: any) => [
+              ...prev,
+              {
+                role: 'assistant',
+                content: data.message,
+              },
+            ])
+          }
+          
+          // Note: We don't reset onRealTime state here as it's managed by useChatBot
+          // The next customer message will check the live status from the server
+        }
+      })
 
       // Also log all events on the channel for debugging
       channel.bind_global((eventName: string, data: any) => {
