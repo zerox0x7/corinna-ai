@@ -23,10 +23,23 @@ import UploadButton from '../upload-button'
 type Props = {
   errors: any
   register: UseFormRegister<ChatBotMessageProps>
-  chats: { role: 'assistant' | 'user'; content: string; link?: string }[]
+  chats: { 
+    role: 'assistant' | 'user'
+    content: string
+    link?: string
+    products?: Array<{
+      id: string
+      name: string
+      price: number
+      image: string
+      domainId?: string | null
+    }>
+  }[]
   onChat(): void
   onResponding: boolean
   domainName: string
+  domainId?: string
+  customerId?: string
   theme?: string | null
   textColor?: string | null
   help?: boolean
@@ -48,6 +61,13 @@ type Props = {
         role: 'user' | 'assistant'
         content: string
         link?: string | undefined
+        products?: Array<{
+          id: string
+          name: string
+          price: number
+          image: string
+          domainId?: string | null
+        }>
       }[]
     >
   >
@@ -62,6 +82,8 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
       onChat,
       onResponding,
       domainName,
+      domainId,
+      customerId,
       helpdesk,
       realtimeMode,
       setChat,
@@ -72,6 +94,39 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     console.log(errors)
+    
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const target = e.currentTarget
+      const scrollAmount = 40 // pixels to scroll per arrow key press
+      
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault()
+          target.scrollBy({ top: scrollAmount, behavior: 'smooth' })
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          target.scrollBy({ top: -scrollAmount, behavior: 'smooth' })
+          break
+        case 'PageDown':
+          e.preventDefault()
+          target.scrollBy({ top: target.clientHeight * 0.9, behavior: 'smooth' })
+          break
+        case 'PageUp':
+          e.preventDefault()
+          target.scrollBy({ top: -target.clientHeight * 0.9, behavior: 'smooth' })
+          break
+        case 'Home':
+          e.preventDefault()
+          target.scrollTo({ top: 0, behavior: 'smooth' })
+          break
+        case 'End':
+          e.preventDefault()
+          target.scrollTo({ top: target.scrollHeight, behavior: 'smooth' })
+          break
+      }
+    }
+    
     return (
       <div className="h-[600px] w-[400px] md:w-[450px] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
         <div className="flex justify-between items-start px-4 py-4 bg-gradient-to-r from-slate-50 to-white border-b">
@@ -118,13 +173,19 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
                   background: theme || '',
                   color: textColor || '',
                 }}
-                className="px-4 flex-1 flex flex-col py-4 gap-3 chat-window overflow-y-auto"
+                className="px-4 flex-1 flex flex-col py-4 gap-3 chat-window overflow-y-auto overflow-x-hidden focus:outline-none focus:ring-1 focus:ring-primary/30"
                 ref={ref}
+                tabIndex={0}
+                onKeyDown={handleKeyDown}
+                role="log"
+                aria-label="Chat messages"
               >
                 {chats.map((chat, key) => (
                   <Bubble
                     key={key}
                     message={chat}
+                    domainId={domainId}
+                    customerId={customerId}
                   />
                 ))}
                 {onResponding && <Responding />}
@@ -164,7 +225,13 @@ export const BotWindow = forwardRef<HTMLDivElement, Props>(
           </TabsContent>
 
           <TabsContent value="helpdesk" className="mt-0">
-            <div className="h-[485px] overflow-y-auto overflow-x-hidden px-4 py-3 flex flex-col gap-4">
+            <div 
+              className="h-[485px] overflow-y-auto overflow-x-hidden px-4 py-3 flex flex-col gap-4 focus:outline-none focus:ring-1 focus:ring-primary/30"
+              tabIndex={0}
+              onKeyDown={handleKeyDown}
+              role="region"
+              aria-label="Help desk"
+            >
               <div>
                 <CardTitle className="text-base">Help Desk</CardTitle>
                 <CardDescription className="text-sm">

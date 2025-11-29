@@ -22,6 +22,21 @@ body {
 .chat-window {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  /* Smooth scrolling on touch devices */
+  -webkit-overflow-scrolling: touch;
+  /* Improve scroll performance */
+  will-change: scroll-position;
+  /* Enable momentum scrolling on iOS */
+  overflow-y: scroll;
+  /* Better touch interactions */
+  touch-action: pan-y;
+  /* Smooth scroll behavior for keyboard navigation */
+  scroll-behavior: smooth;
+}
+
+/* Focus state for keyboard navigation */
+.chat-window:focus {
+  outline: none;
 }
 
 @layer base {

@@ -48,21 +48,41 @@ export const useChatBot = () => {
   const onOpenChatBot = () => setBotOpened((prev) => !prev)
   const [loading, setLoading] = useState<boolean>(true)
   const [onChats, setOnChats] = useState<
-    { role: 'assistant' | 'user'; content: string; link?: string }[]
+    { 
+      role: 'assistant' | 'user'
+      content: string
+      link?: string
+      products?: Array<{
+        id: string
+        name: string
+        price: number
+        image: string
+        domainId?: string | null
+      }>
+    }[]
   >([])
   const [onAiTyping, setOnAiTyping] = useState<boolean>(false)
   const [currentBotId, setCurrentBotId] = useState<string>()
+  const [customerId, setCustomerId] = useState<string>()
   const [onRealTime, setOnRealTime] = useState<
     { chatroom: string; mode: boolean } | undefined
   >(undefined)
 
 
   const onScrollToBottom = () => {
-    messageWindowRef.current?.scroll({
-      top: messageWindowRef.current.scrollHeight,
-      left: 0,
-      behavior: 'smooth',
-    })
+    if (!messageWindowRef.current) return
+    
+    const { scrollTop, scrollHeight, clientHeight } = messageWindowRef.current
+    // Only auto-scroll if user is near the bottom (within 100px)
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+    
+    if (isNearBottom) {
+      messageWindowRef.current.scrollTo({
+        top: messageWindowRef.current.scrollHeight,
+        left: 0,
+        behavior: 'smooth',
+      })
+    }
   }
 
   useEffect(() => {
@@ -161,6 +181,11 @@ export const useChatBot = () => {
           }
           setOnChats((prev: any) => [...prev, response.response])
         }
+        
+        // Track customer ID if available
+        if (response.customerId) {
+          setCustomerId(response.customerId)
+        }
       }
     }
     reset()
@@ -210,6 +235,11 @@ export const useChatBot = () => {
           }
           setOnChats((prev: any) => [...prev, response.response])
         }
+        
+        // Track customer ID if available
+        if (response.customerId) {
+          setCustomerId(response.customerId)
+        }
       }
     }
   })
@@ -227,6 +257,8 @@ export const useChatBot = () => {
     setOnChats,
     onRealTime,
     errors,
+    currentBotId,
+    customerId,
   }
 }
 

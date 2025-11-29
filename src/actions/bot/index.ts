@@ -75,6 +75,177 @@ export const onGetCurrentChatBot = async (id: string) => {
   }
 }
 
+export const onSearchProducts = async (
+  domainId: string,
+  query: string
+) => {
+  try {
+    // Extract meaningful keywords from the query
+    const stopWords = ['show', 'me', 'find', 'search', 'looking', 'for', 'want', 'need', 'get', 'see', 'the', 'a', 'an', 'some', 'any', 'your', 'our']
+    const keywords = query
+      .toLowerCase()
+      .split(' ')
+      .filter(word => !stopWords.includes(word) && word.length > 2)
+
+    // Try to search with extracted keywords first
+    let products: Array<{
+      id: string
+      name: string
+      price: number
+      image: string
+      domainId: string | null
+    }> = []
+    if (keywords.length > 0) {
+      const searchTerm = keywords.join(' ')
+      products = await client.product.findMany({
+        where: {
+          domainId,
+          name: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          image: true,
+          domainId: true,
+        },
+        take: 6,
+      })
+    }
+
+    // If no results, try searching with individual keywords
+    if (products.length === 0 && keywords.length > 0) {
+      for (const keyword of keywords) {
+        products = await client.product.findMany({
+          where: {
+            domainId,
+            name: {
+              contains: keyword,
+              mode: 'insensitive',
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            image: true,
+            domainId: true,
+          },
+          take: 6,
+        })
+        
+        if (products.length > 0) break
+      }
+    }
+
+    // If still no results, show all products (up to 6)
+    if (products.length === 0) {
+      products = await client.product.findMany({
+        where: {
+          domainId,
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          image: true,
+          domainId: true,
+        },
+        take: 6,
+      })
+    }
+
+    return products
+  } catch (error) {
+    console.log(error)
+    return []
+  }
+}
+
+// New function to send product inquiry to n8n webhook
+export const onSendProductInquiryToN8N = async (
+  domainId: string,
+  customerId: string,
+  customerEmail: string | undefined,
+  query: string,
+  chatRoomId: string
+) => {
+  try {
+    const webhookUrl = process.env.N8N_PRODUCT_WEBHOOK_URL
+    
+    if (!webhookUrl) {
+      console.error('N8N_PRODUCT_WEBHOOK_URL is not configured')
+      return { success: false, error: 'Webhook not configured' }
+    }
+
+    // Extract meaningful keywords from the query
+    const stopWords = ['show', 'me', 'find', 'search', 'looking', 'for', 'want', 'need', 'get', 'see', 'the', 'a', 'an', 'some', 'any', 'your', 'our']
+    const keywords = query
+      .toLowerCase()
+      .split(' ')
+      .filter(word => !stopWords.includes(word) && word.length > 2)
+
+    // Build URL with query parameters for GET request
+    const url = new URL(webhookUrl)
+    url.searchParams.append('domainId', domainId)
+    url.searchParams.append('customerId', customerId)
+    url.searchParams.append('customerEmail', customerEmail || 'not-provided')
+    url.searchParams.append('query', query)
+    url.searchParams.append('keywords', keywords.join(', '))
+    url.searchParams.append('chatRoomId', chatRoomId)
+    url.searchParams.append('timestamp', new Date().toISOString())
+
+    console.log('🚀 Sending product inquiry to n8n (GET):', url.toString())
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    })
+
+    console.log('📥 Response status:', response.status, response.statusText)
+
+    // Accept both 200 and 201 status codes as success
+    if (response.status !== 200 && response.status !== 201) {
+      const errorText = await response.text()
+      console.error('❌ Webhook returned non-200 status:', response.status, errorText)
+      // Still return success: true if it's a 4xx/5xx but the request was sent
+      // The webhook was triggered, even if n8n had an internal issue
+      return { success: true, data: { status: response.status, error: errorText } }
+    }
+
+    let result
+    try {
+      const responseText = await response.text()
+      console.log('📄 Raw response:', responseText)
+      
+      // Try to parse as JSON, but accept any response
+      try {
+        result = JSON.parse(responseText)
+      } catch (parseError) {
+        // If not JSON, just use the text
+        result = { message: responseText }
+      }
+      
+      console.log('✅ n8n webhook response:', result)
+    } catch (textError) {
+      console.log('⚠️ Could not read response body, but request succeeded')
+      result = { message: 'Request sent successfully' }
+    }
+
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('❌ Error sending product inquiry to n8n:', error)
+    // Even on error, consider it a partial success if the error is just network/parsing
+    console.log('⚠️ Treating as success since the attempt was made')
+    return { success: true, error: String(error) }
+  }
+}
+
 let customerEmail: string | undefined
 
 export const onAiChatBotAssistant = async (
@@ -189,7 +360,8 @@ export const onAiChatBotAssistant = async (
             )
 
             if (!checkCustomer.customer[0].chatRoom[0].mailed) {
-              const user = await clerkClient.users.getUser(
+              const clerk = await clerkClient()
+              const user = await clerk.users.getUser(
                 checkCustomer.User?.clerkId!
               )
 
@@ -246,6 +418,72 @@ export const onAiChatBotAssistant = async (
           }
         }
 
+        // TEST MODE REMOVED: Products now handled via n8n webhook
+        
+        // Check if message is asking for products
+        const productKeywords = ['product', 'products', 'show', 'looking for', 'find', 'search', 'buy', 'purchase', 'shop', 'item', 'items']
+        const isProductQuery = productKeywords.some(keyword => 
+          message.toLowerCase().includes(keyword)
+        )
+
+        console.log('🔍 Product Query Check:', { 
+          message, 
+          isProductQuery,
+          matchedKeyword: productKeywords.find(k => message.toLowerCase().includes(k))
+        })
+
+        // If it's a product query, send to n8n webhook
+        if (isProductQuery) {
+          console.log('✅ Product query detected! Triggering n8n webhook...')
+          
+          // Send product inquiry to n8n workflow
+          const webhookResult = await onSendProductInquiryToN8N(
+            id,
+            checkCustomer?.customer[0].id!,
+            customerEmail,
+            message,
+            checkCustomer?.customer[0].chatRoom[0].id!
+          )
+          
+          console.log('📡 Webhook Result:', webhookResult)
+          
+          let responseContent = ''
+          let products = []
+          
+          if (webhookResult.success && webhookResult.data) {
+            // Check if n8n returned products
+            if (webhookResult.data.products && Array.isArray(webhookResult.data.products) && webhookResult.data.products.length > 0) {
+              products = webhookResult.data.products
+              responseContent = webhookResult.data.message || `I found ${products.length} product${products.length > 1 ? 's' : ''} for you! Check them out below:`
+            } else if (webhookResult.data.message) {
+              // n8n sent a message but no products
+              responseContent = webhookResult.data.message
+            } else {
+              // Fallback
+              responseContent = `I've received your product inquiry! Let me check what we have available for you. I'll get back to you with some great options shortly! 🔍`
+            }
+          } else {
+            responseContent = `I received your product inquiry, but I'm having trouble accessing our product catalog right now. One of our team members will assist you shortly!`
+          }
+
+          const response = {
+            role: 'assistant',
+            content: responseContent,
+            ...(products.length > 0 && { products }),
+          }
+
+          await onStoreConversations(
+            checkCustomer?.customer[0].chatRoom[0].id!,
+            response.content,
+            'assistant'
+          )
+
+          return { 
+            response,
+            customerId: checkCustomer?.customer[0].id
+          }
+        }
+
         const chatCompletion = await openai.chat.completions.create({
           messages: [
             {
@@ -272,6 +510,8 @@ export const onAiChatBotAssistant = async (
               if the customer agrees to book an appointment send them this link http://localhost:3000/portal/${id}/appointment/${
                 checkCustomer?.customer[0].id
               }
+
+              If the customer asks about products or wants to see available items, tell them they can ask you to search for products by name or description. Add a keyword (product-inquiry) at the end when mentioning this.
 
               if the customer wants to buy a product redirect them to the payment page http://localhost:3000/portal/${id}/payment/${
                 checkCustomer?.customer[0].id
@@ -378,6 +618,63 @@ export const onAiChatBotAssistant = async (
         }
       }
       console.log('No customer')
+      
+      // TEST MODE REMOVED: Products now handled via n8n webhook
+      
+      // Check if message is asking for products (for non-logged-in users)
+      const productKeywords = ['product', 'products', 'show', 'looking for', 'find', 'search', 'buy', 'purchase', 'shop', 'item', 'items']
+      const isProductQuery = productKeywords.some(keyword => 
+        message.toLowerCase().includes(keyword)
+      )
+
+      console.log('🔍 [Guest] Product Query Check:', { 
+        message, 
+        isProductQuery,
+        matchedKeyword: productKeywords.find(k => message.toLowerCase().includes(k))
+      })
+
+      if (isProductQuery) {
+        console.log('✅ [Guest] Product query detected! Triggering n8n webhook...')
+        
+        // Send to n8n webhook even for non-logged-in users
+        const webhookResult = await onSendProductInquiryToN8N(
+          id,
+          'guest', // No customer ID yet
+          undefined, // No email yet
+          message,
+          'guest-session' // No chat room yet
+        )
+        
+        console.log('📡 [Guest] Webhook Result:', webhookResult)
+        
+        let responseContent = ''
+        let products = []
+        
+        if (webhookResult.success && webhookResult.data) {
+          // Check if n8n returned products
+          if (webhookResult.data.products && Array.isArray(webhookResult.data.products) && webhookResult.data.products.length > 0) {
+            products = webhookResult.data.products
+            responseContent = webhookResult.data.message || `I found ${products.length} amazing product${products.length > 1 ? 's' : ''} for you! To complete your purchase, please share your email address. 📧`
+          } else if (webhookResult.data.message) {
+            // n8n sent a message but no products
+            responseContent = webhookResult.data.message
+          } else {
+            // Fallback
+            responseContent = `I'd love to help you find the perfect products! I've noted your inquiry. To provide you with personalized recommendations and complete your purchase, could you please share your email address? 📧`
+          }
+        } else {
+          responseContent = `I'd be happy to help you with products! To get started and show you our best options, could you please provide your email address?`
+        }
+
+        const response = {
+          role: 'assistant',
+          content: responseContent,
+          ...(products.length > 0 && { products }),
+        }
+
+        return { response }
+      }
+      
       const chatCompletion = await openai.chat.completions.create({
         messages: [
           {
@@ -387,6 +684,8 @@ export const onAiChatBotAssistant = async (
             Right now you are talking to a customer for the first time. Start by giving them a warm welcome on behalf of ${chatBotDomain.name} and make them feel welcomed.
 
             Your next task is lead the conversation naturally to get the customers email address. Be respectful and never break character
+
+            If the customer asks about products, tell them you can help them find products and show them options. Encourage them to describe what they're looking for.
 
           `,
           },

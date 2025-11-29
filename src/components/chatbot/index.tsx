@@ -22,6 +22,8 @@ const AiChatBot = (props: Props) => {
     onRealTime,
     setOnChats,
     errors,
+    currentBotId,
+    customerId,
   } = useChatBot()
 
   return (
@@ -34,6 +36,8 @@ const AiChatBot = (props: Props) => {
             realtimeMode={onRealTime}
             helpdesk={currentBot?.helpdesk!}
             domainName={currentBot?.name!}
+            domainId={currentBotId}
+            customerId={customerId}
             ref={messageWindowRef}
             help={currentBot?.chatBot?.helpdesk}
             theme={currentBot?.chatBot?.background}
